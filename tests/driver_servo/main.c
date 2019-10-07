@@ -32,29 +32,30 @@
 
 #define DEV         PWM_DEV(0)
 #define CHANNEL     0
+#define SERVO_MIN	(500U)
+#define SERVO_MAX 	(5500U)
 
-#define SERVO_MIN        (1000U)
-#define SERVO_MAX        (5000U)
 
-/* these are defined outside the limits of the servo_init min/max parameters above */
-/* we will test the clamping functionality of the servo_set function. */
-#define STEP_LOWER_BOUND (900U)
-#define STEP_UPPER_BOUND (5000U)
+#define VORWAERTS	(1000U)
+#define RUECKWAERTS	(5000U)
+#define STILL		(2583U)
+
+
 
 /* Step size that we move per WAIT us */
 #define STEP             (10U)
 
 /* Sleep time between updates, no need to update the servo position more than
  * once per cycle */
-#define WAIT             (10000U)
+#define WAIT             (1000000U)
 
 static servo_t servo;
 
 int main(void)
 {
     int res;
-    unsigned int pos = (STEP_LOWER_BOUND + STEP_UPPER_BOUND)/2;
-    int step = STEP;
+   // unsigned int pos = (STEP_LOWER_BOUND + STEP_UPPER_BOUND)/2;
+   // int step = STEP;
 
     puts("\nRIOT RC servo test");
     puts("Connect an RC servo or scope to PWM_0 channel 0 to see anything");
@@ -68,14 +69,14 @@ int main(void)
 
 
     while (1) {
-        servo_set(&servo, pos);
-
-        pos += step;
-        if (pos <= STEP_LOWER_BOUND || pos >= STEP_UPPER_BOUND) {
-            step = -step;
-        }
-
-        xtimer_usleep(WAIT);
+        servo_set(&servo, VORWAERTS);
+        xtimer_usleep(WAIT*2);
+	servo_set(&servo, STILL);
+	xtimer_usleep(WAIT*2);
+        servo_set(&servo, RUECKWAERTS);
+        xtimer_usleep(WAIT*2);
+	servo_set(&servo, STILL);
+	xtimer_usleep(WAIT*2);
     }
 
     return 0;
