@@ -34,12 +34,12 @@
 #define CHANNEL     0
 
 #define SERVO_MIN        (1000U)
-#define SERVO_MAX        (2000U)
+#define SERVO_MAX        (5000U)
 
 /* these are defined outside the limits of the servo_init min/max parameters above */
 /* we will test the clamping functionality of the servo_set function. */
 #define STEP_LOWER_BOUND (900U)
-#define STEP_UPPER_BOUND (2100U)
+#define STEP_UPPER_BOUND (5000U)
 
 /* Step size that we move per WAIT us */
 #define STEP             (10U)
@@ -53,7 +53,7 @@ static servo_t servo;
 int main(void)
 {
     int res;
-    unsigned int pos = (STEP_LOWER_BOUND + STEP_UPPER_BOUND) / 2;
+    unsigned int pos = (STEP_LOWER_BOUND + STEP_UPPER_BOUND)/2;
     int step = STEP;
 
     puts("\nRIOT RC servo test");
@@ -65,6 +65,7 @@ int main(void)
         return -1;
     }
     puts("Servo initialized.");
+
 
     while (1) {
         servo_set(&servo, pos);
