@@ -1,28 +1,6 @@
-/*
- * Copyright (C) 2015 Eistec AB
- *
- * This file is subject to the terms and conditions of the GNU Lesser General
- * Public License v2.1. See the file LICENSE in the top level directory for more
- * details.
- */
-
-/**
- * @ingroup tests
- * @{
- *
- * @file
- * @brief       Test for servo driver
- *
- * This test initializes the given servo device and moves it between
- * 1.000 -- 2.000 ms, roughly -/+ 90 degrees from the middle position if the
- * connected servo is a standard RC servo.
- *
- * @author      Joakim Nohlgård <joakim.nohlgard@eistec.se>
- *
- * @}
- */
-
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 #include "cpu.h"
 #include "board.h"
@@ -30,35 +8,77 @@
 #include "periph/pwm.h"
 #include "servo.h"
 
+#include "shell.h"
+
 #define DEV         PWM_DEV(0)
-#define CHANNEL     0
+#define CHANNEL     2
 #define SERVO_MIN	(500U)
 #define SERVO_MAX 	(5500U)
 
+#define STILLSTAND	(1500U) //Bei dieser Zeit steht der Motor still. Sollte dies nicht der Fall sein muss er kalibriert werden.
+#define MAXGESCHW	(2300U) //Bei dieser Zeit fährt der Motor auf voller Geschwindigkeit vorwärts
+#define MINGESCHW	(500) //Bei dieser Zeit fährt der Motor auf voller Geschwindigkeit rückwärts
 
-#define VORWAERTS	(1000U)
-#define RUECKWAERTS	(5000U)
-#define STILL		(2583U)
+#define MINGESCHW	(2680U)
 
 
-
-/* Step size that we move per WAIT us */
-#define STEP             (10U)
-
-/* Sleep time between updates, no need to update the servo position more than
- * once per cycle */
-#define WAIT             (1000000U)
 
 static servo_t servo;
+
+static int _set(int argc, char**argv)
+{
+    if (argc != 2) {
+        printf("usage: %s <value> \n", argv[0]);
+        return 1;
+    }
+
+    unsigned dutycycle= atoi(argv[1]);
+
+
+    servo_set(&servo, dutycycle);
+    printf("auf %u gesetzt \n",dutycycle);
+    return 0;
+}
+
+static int _geschw(int argc, char**argv)
+{
+	if (argc != 2) {
+		printf("Geben Sie %s und einen Wert zwischen -10 und 20 ein", argv[0]);	
+		return 1;
+	}
+	
+	unsigned v = atoi(argv[1]);
+
+	//if (v > 20 || v < -10) {
+	//	printf("Geben Sie einen Wert zwischen -10 und 20 ein");
+	//	return 1;
+	//}
+	servo_set(&servo, STILLSTAND-(v*((STILLSTAND-MAXGESCHW)/20)));
+	printf("set %u\n",STILLSTAND-(v*((STILLSTAND-MAXGESCHW)/20)));
+	return 0;
+}
+
+
+
+
+static const shell_command_t shell_commands[] = { //Liste der Shell-Befehle
+    { "set", "set servo value", _set },
+    { "v" , "Geschwindigkeit (+/-) eingeben", _geschw},
+    { NULL, NULL, NULL }
+};
+
+
+
+
+
 
 int main(void)
 {
     int res;
-   // unsigned int pos = (STEP_LOWER_BOUND + STEP_UPPER_BOUND)/2;
-   // int step = STEP;
 
-    puts("\nRIOT RC servo test");
-    puts("Connect an RC servo or scope to PWM_0 channel 0 to see anything");
+
+    puts("\nMotorsteuerung des RIOT-Projekts.");
+    puts("Verbinden Sie den PWM-Eingang des Motors mit dem sechsten Pin von unten auf der rechten Seite");
 
     res = servo_init(&servo, DEV, CHANNEL, SERVO_MIN, SERVO_MAX);
     if (res < 0) {
@@ -67,17 +87,8 @@ int main(void)
     }
     puts("Servo initialized.");
 
-
-    while (1) {
-        servo_set(&servo, VORWAERTS);
-        xtimer_usleep(WAIT*2);
-	servo_set(&servo, STILL);
-	xtimer_usleep(WAIT*2);
-        servo_set(&servo, RUECKWAERTS);
-        xtimer_usleep(WAIT*2);
-	servo_set(&servo, STILL);
-	xtimer_usleep(WAIT*2);
-    }
+    char line_buf[SHELL_DEFAULT_BUFSIZE];
+    shell_run(shell_commands, line_buf, SHELL_DEFAULT_BUFSIZE);
 
     return 0;
 }
