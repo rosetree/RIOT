@@ -27,8 +27,9 @@
 
 static servo_t servo;
 
-int d = 50; //Durchmesser der Spindel in mm
+int d; //Durchmesser der Spindel in mm
 int U;
+int h;
 
 
 
@@ -46,7 +47,23 @@ static int _kalibrieren(int argc, char**argv)
 }
 
 
+static int _set_d(int argc, char**argv)
+{
+	if (argc != 3) {
+		printf("usage: %s <value> <unit>\n", argv[0]);
+	        return 1;
+	}
 
+	if 	(strcmp(argv[2],"mm")==0) d = atoi(argv[1]);
+	else if (strcmp(argv[2],"cm")==0) d = atoi(argv[1])*10;
+	else if (strcmp(argv[2],"m")==0)  d = atoi(argv[1])*1000;
+	else{
+		 printf("Ungueltige Einheit\n");
+		 return 1;
+	}	
+	U =(int)(d*3.14159265358979323846);
+	return 0;
+}
 
 
 
@@ -72,7 +89,7 @@ static int _set(int argc, char**argv)
 
 
 
-static int _geschw_neu(int argc, char**argv)
+static int _plus(int argc, char**argv)
 {
 	if (argc != 3) 
 	{
@@ -154,9 +171,95 @@ static int _geschw_neu(int argc, char**argv)
 }
 
 
+static int _minus(int argc, char**argv)
+{
+	if (argc != 3) 
+	{
+        	printf("usage: %s <value> <unit> \n", argv[0]);
+	        return 1;
+    	}
+
+	int l_ges = atoi(argv[1]); //Einlesen der Länge
+	
+	if 	(strcmp(argv[2],"mm")==0) ;
+	else if (strcmp(argv[2],"cm")==0) l_ges=l_ges*10;
+	else if (strcmp(argv[2],"m")==0) l_ges=l_ges*1000;
+	else{
+		 printf("Ungueltige Einheit\n");
+		return 1;
+	}	
+	
+	//VORBERECHNUNG
+
+
+	int t_anfahrt = 2000; //Zeit zum Anfahren in ms
+	int t_mitte = -1; // Zeit, die während der konstanten Periode vergeht in ms
+	int t_step; //Zeit die für jeden Anfahr-Schritt benötigt wird in ms
+	int l_anfahrt; //Länge, die bei der Anfahrt zurückgelegt wird in mm
+	int l_mitte; //Länge, die während der konstanten Periode zurückgelegt wird in mm
+	while (t_mitte<0){
+	t_step = (int)(t_anfahrt/7); 
+	//l_anfahrt = SUMME(f_step*t_step*U) = SUMME(f_step)*t_step*U
+	//SUMME(f_step)= 10/50200ms + 10/28600ms + 10/19600ms + 10/14900ms + 10/14100ms + 10/13300ms + 10/13100ms + 10/13000ms = 0.004723888
+	l_anfahrt = (int)(0.004723888*t_step*U); 
+	l_mitte = (int)(l_ges - l_anfahrt*2); 
+	t_mitte = l_mitte / (0.000769231*U); 
+	if (t_mitte < 0) t_anfahrt -= 100;
+	}
+
+
+	//ÜBERPRÜFUNG	
+
+	/*printf("d = %d mm\n",d);
+	printf("U = %d mm\n",U);
+	printf("l_ges = %d mm\n",l_ges);
+	printf("t_anfahrt = %d ms\n",t_anfahrt);
+	printf("t_step = %d ms\n",t_step);
+	printf("t_mitte = %d ms\n",t_mitte);
+	printf("l_anfahrt = %d mm\n",l_anfahrt);
+	printf("l_mitte = %d mm\n",l_mitte); */
+
+	//AUSFÜHRUNG
+	//Der Motor wird in 7 50-er Schritten auf die Maximalgeschwindigkeit gesetzt, solange, bis die gewünschte Länge eingeholt ist.
+	int dc=1500;
+	unsigned long int zeit;
+
+	//ANFAHREN
+	printf("<ANFAHREN> [%d ms]\n",t_anfahrt);
+	for (dc = 1500; dc<=1900;dc+=50)
+	{
+		servo_set(&servo, dc);
+		zeit=xtimer_now_usec(); //aktuelle Zeit wird gespeichert
+		while (xtimer_now_usec() < (zeit+t_step*1000));
+		//printf("%d\n",dc);
+	}
+
+	//KONST. GESCHWINDIGKEIT
+	printf("<MAXIMALGESCHWINDIGKEIT> [%d ms]\n",t_mitte);
+	zeit=xtimer_now_usec(); //aktuelle Zeit wird gespeichert
+	while (xtimer_now_usec() < (zeit+t_mitte*1000));
+
+	//BREMSEN
+	printf("<BREMSEN> [%d ms]\n",t_anfahrt);
+	for (dc = 1900; dc>=1500;dc-=50)
+	{
+		servo_set(&servo, dc);
+		zeit=xtimer_now_usec(); //aktuelle Zeit wird gespeichert
+		while (xtimer_now_usec() < (zeit+t_step*1000));
+		//printf("%d \n",dc);
+	}	
+	return 0;
+
+}
+
+
+
+
 static const shell_command_t shell_commands[] = { //Liste der Shell-Befehle
     { "set", "set servo value", _set },
-    {"+", "Länge einholen", _geschw_neu},
+    {"+", "Länge ausgeben", _plus},
+    {"-", "Länge einholen", _minus},
+    {"set_d", "Durchmesser der Spindel eingeben", _set_d},
     {"kalibrieren" , "Stellt den Motor auf einen Standartwert, der mithilfe des Potis als Nullpunkt eingestellt werden muss.", _kalibrieren},
     { NULL, NULL, NULL }
 };
@@ -168,8 +271,11 @@ static const shell_command_t shell_commands[] = { //Liste der Shell-Befehle
 
 int main(void)
 {
+    
     int res;
+    d = 50; //Spindeldurchmesser in mm
     U =(int)(d*3.14159265358979323846); //Umfang der Spindel in mm
+    h = 0;
 
     /*puts("\nMotorsteuerung des RIOT-Projekts.");
     puts("Verbinden Sie den PWM-Eingang des Motors mit dem sechsten Pin von unten auf der rechten Seite");*/
