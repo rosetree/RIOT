@@ -74,11 +74,9 @@ static int _set(int argc, char**argv)
         return 1;
     }
 
-    unsigned dutycycle= atoi(argv[1]);
 
-
-    servo_set(&servo, dutycycle);
-    printf("auf %u gesetzt \n",dutycycle);
+    servo_set(&servo, atoi(argv[1]));
+    printf("auf %u gesetzt \n",atoi(argv[1]));
     return 0;
 }
 
@@ -273,7 +271,7 @@ int main(void)
 {
     
     int res;
-    d = 50; //Spindeldurchmesser in mm
+    d = 15; //Spindeldurchmesser in mm
     U =(int)(d*3.14159265358979323846); //Umfang der Spindel in mm
     h = 0;
 
