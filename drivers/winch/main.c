@@ -30,6 +30,7 @@ typedef struct {
 	servo_t *servo;
 	int d; //Durchmesser der Spindel in mm
 	int U;
+	gpio_t reed;
 } winch_t;
 
 
@@ -89,12 +90,60 @@ static int _set(int argc, char**argv)
     return 0;
 }
 
+uint32_t winch_measure (winch_t *winch, uint32_t *messwerte)
+//Führt Messungen der Zeiten durch, die die Winde bei den verschiedenen Anfahrgeschwindigkeiten für eine Umdrehung braucht
+{
+	int dc=1500;
+	uint32_t zeit;
+	int i=0; 
 
-int winch_init (winch_t *winch, servo_t *servo, int d)
+	//Servo in Startposition bringen	
+	if (gpio_read(winch->reed)!=0){
+		while(gpio_read(winch->reed)!=0)
+		{
+			printf("xxx\n");
+			servo_set(&servo, 1200);
+		}	
+	}
+	printf("2\n");
+	while(gpio_read(winch->reed)==0)
+	{
+		servo_set(&servo, 1200);
+	}
+	servo_set(&servo, 1500);		
+
+
+
+	for (dc = 1450; dc>=1100;dc-=50)
+	{
+		servo_set(&servo, dc);		
+		zeit=xtimer_now_usec(); 
+		while(gpio_read(winch->reed)!=0);
+		while(gpio_read(winch->reed)==0);
+		messwerte[i]=xtimer_now_usec()-zeit;
+		printf("Messwert %d:  dc= %d;     %"PRIu32"\n",i,dc,messwerte[i]);
+		i++;
+	}	
+	servo_set(&servo, 1150);
+	servo_set(&servo, 1200);
+	servo_set(&servo, 1250);
+	servo_set(&servo, 1300);
+	servo_set(&servo, 1350);
+	servo_set(&servo, 1400);
+	servo_set(&servo, 1450);
+	servo_set(&servo, 1500);
+	return 1/messwerte[0]+1/messwerte[1]+1/messwerte[2]+1/messwerte[3]+1/messwerte[4]+1/messwerte[5]+1/messwerte[6]+1/messwerte[7];
+
+return 0;
+}
+
+
+int winch_init (winch_t *winch, servo_t *servo, int d, gpio_t reed)
 {
 	winch->servo = servo;
 	winch->d = d;
 	winch->U = d * PI;
+	winch->reed = reed;
 	return 0;
 }
 
@@ -233,7 +282,10 @@ static const shell_command_t shell_commands[] = { //Liste der Shell-Befehle
 
 int main(void)
 {
+    gpio_t reed_pin= GPIO_PIN(0,23);
     int d = 15; //Spindeldurchmesser in mm
+    gpio_init(reed_pin,GPIO_IN_PD);
+    uint32_t messwerte[10];
 
     /*puts("\nMotorsteuerung des RIOT-Projekts.");
     puts("Verbinden Sie den PWM-Eingang des Motors mit dem sechsten Pin von unten auf der rechten Seite");*/
@@ -243,9 +295,16 @@ int main(void)
         puts("Errors while initializing servo");
         return -1;
     }
+	//while(1) printf("%d\n",gpio_read(reed_pin));
 
-    winch_init(&winch,&servo,d);
+
+    winch_init(&winch,&servo,d, reed_pin);
+
     char line_buf[SHELL_DEFAULT_BUFSIZE];
+
+    winch_measure (&winch, messwerte);
+
+
     shell_run(shell_commands, line_buf, SHELL_DEFAULT_BUFSIZE);
 
 	
