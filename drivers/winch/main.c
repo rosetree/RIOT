@@ -8,6 +8,7 @@
 #include "periph/pwm.h"
 #include "servo.h"
 #include "math.h"
+#include "winch.h"
 
 #include "shell.h"
 
@@ -26,16 +27,11 @@
 //#define MINGESCHW	(2680U)
 
 
-typedef struct {
-	servo_t *servo;
-	int d; //Durchmesser der Spindel in mm
-	int U;
-	gpio_t reed;
-} winch_t;
+
 
 
 servo_t servo;
-winch_t winch;
+
 
 
 int d=15;
@@ -281,11 +277,11 @@ static const shell_command_t shell_commands[] = { //Liste der Shell-Befehle
 
 
 int main(void)
-{
+{ 
     gpio_t reed_pin= GPIO_PIN(0,23);
     int d = 15; //Spindeldurchmesser in mm
     gpio_init(reed_pin,GPIO_IN_PD);
-    uint32_t messwerte[10];
+    //uint32_t messwerte[10]; 
 
     /*puts("\nMotorsteuerung des RIOT-Projekts.");
     puts("Verbinden Sie den PWM-Eingang des Motors mit dem sechsten Pin von unten auf der rechten Seite");*/
@@ -302,7 +298,7 @@ int main(void)
 
     char line_buf[SHELL_DEFAULT_BUFSIZE];
 
-    winch_measure (&winch, messwerte);
+    // winch_measure (&winch, messwerte); 
 
 
     shell_run(shell_commands, line_buf, SHELL_DEFAULT_BUFSIZE);
