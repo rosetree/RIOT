@@ -1,7 +1,7 @@
 #ifndef WINCH
 #define WINCH
 
-
+#include "servo.h"
 
 typedef struct {
 	servo_t *servo;
