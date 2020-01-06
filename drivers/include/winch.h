@@ -1,6 +1,12 @@
 #ifndef WINCH
 #define WINCH
 
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
 #include "servo.h"
 
 typedef struct {
@@ -10,8 +16,14 @@ typedef struct {
 	gpio_t reed;
 } winch_t;
 
-winch_t winch;
+void winch_init(winch_t *winch, servo_t *servo, int d, gpio_t reed);
 
-void winch_control (winch_t *winch, int l_ges);
+void winch_control(winch_t *winch, int l_ges);
+
+
+#ifdef __cplusplus
+}
+#endif
+
 
 #endif
