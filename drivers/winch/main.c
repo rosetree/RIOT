@@ -281,10 +281,7 @@ int main(void)
     gpio_t reed_pin= GPIO_PIN(0,23);
     int d = 15; //Spindeldurchmesser in mm
     gpio_init(reed_pin,GPIO_IN_PD);
-    //uint32_t messwerte[10]; 
-
-    /*puts("\nMotorsteuerung des RIOT-Projekts.");
-    puts("Verbinden Sie den PWM-Eingang des Motors mit dem sechsten Pin von unten auf der rechten Seite");*/
+    //uint32_t messwerte[10]; gg
 
     int res = servo_init(&servo, DEV, CHANNEL, SERVO_MIN, SERVO_MAX);
     if (res < 0) {
