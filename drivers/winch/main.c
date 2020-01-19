@@ -12,10 +12,10 @@
 
 #include "shell.h"
 
-#define DEV         PWM_DEV(0)
-#define CHANNEL     2
-#define SERVO_MIN	(500U)
-#define SERVO_MAX 	(5500U)
+#define DEV         PWM_DEV(0) //PWM-Device
+#define CHANNEL     2 //PWM-Kanal
+#define SERVO_MIN	(500U) //Mindestwert des Servos. Spielt keine große Rolle, wird aber als Eingabewert gefordert.
+#define SERVO_MAX 	(5500U) //Maximalwert des Servos. Spielt keine große Rolle, wird aber als Eingabewert gefordert.
 
 #define PI 3.14159265358979323846
 
@@ -34,8 +34,8 @@ servo_t servo;
 
 
 
-int d=15;
-int U=57;
+int d=15; //Durchmesser der Spindel in mm, wird auf 15 mm initialisiert
+int U=57; //Umfang der Spindel in mm, wird auf 57 mm initialisiert
 
 
 
@@ -73,7 +73,7 @@ static int _set_d(int argc, char**argv)
 
 
 
-static int _set(int argc, char**argv)
+static int _set(int argc, char**argv) //setzt den DutyCicle-Wert des Motors auf einen Wert in Mikrosekunden
 {
     if (argc != 2) {
         printf("usage: %s <value> \n", argv[0]);
@@ -86,7 +86,7 @@ static int _set(int argc, char**argv)
     return 0;
 }
 
-uint32_t winch_measure (winch_t *winch, uint32_t *messwerte)
+uint32_t winch_measure (winch_t *winch, uint32_t *messwerte) //Diese Funktion ist bis zum Ende des Semesters nicht fertig geworden, und erfüllt noch keinen sinnvollen Zweck
 //Führt Messungen der Zeiten durch, die die Winde bei den verschiedenen Anfahrgeschwindigkeiten für eine Umdrehung braucht
 {
 	int dc=1500;
@@ -136,29 +136,29 @@ return 0;
 
 int winch_init (winch_t *winch, servo_t *servo, int d, gpio_t reed)
 {
-	winch->servo = servo;
-	winch->d = d;
-	winch->U = d * PI;
-	winch->reed = reed;
+	winch->servo = servo; //Das Servomotor-Objekt, welches gesteuert werden soll
+	winch->d = d; //Durchmesser der Spindel
+	winch->U = d * PI; //Umfang der Spindel
+	winch->reed = reed; //Reed-Switch zur Messung, ist in aktueller Fassung noch nicht programmiert.
 	return 0;
 }
 
 
-void winch_control (winch_t *winch, int l_ges)
+void winch_control (winch_t *winch, int l_ges 
+//Steuert die Bewegungen des Motors. Es wird ein Wert in mm eingegeben, der je nach Vorzeichen den Motor vor oder zurück dreht.
+//Die Bewegung folgt mit einer Anfahr- und einer Bremsphase
 {
-
-
 	int t_anfahrt = 2000; //Zeit zum Anfahren in ms
 	int t_mitte = -1; // Zeit, die während der konstanten Periode vergeht in ms
 	int t_step; //Zeit die für jeden Anfahr-Schritt benötigt wird in ms
 	int l_anfahrt; //Länge, die bei der Anfahrt zurückgelegt wird in mm
 	int l_mitte; //Länge, die während der konstanten Periode zurückgelegt wird in mm
-	while (t_mitte<0)
+	while (t_mitte<0) //Die Anfahrtszeit wird zunächst auf 2 s festgelegt. sollte dies zu negativen Zeiten führen, wird sie schrittweise herabgesetzt.
 	{
 		t_step = (int)(t_anfahrt/7); 
 		//l_anfahrt = SUMME(f_step*t_step*U) = SUMME(f_step)*t_step*U
 		//SUMME(f_step)= 10/50200ms + 10/28600ms + 10/19600ms + 10/14900ms + 10/14100ms + 10/13300ms + 10/13100ms + 10/13000ms = 0.004723888
-		l_anfahrt = (int)(0.004723888*t_step* winch->U); 
+		l_anfahrt = (int)(0.004723888*t_step* winch->U); //Die errechneten Werte beziehen sich auf Messungen der Umlaufzeiten 
 		l_mitte = (int)(l_ges - l_anfahrt*2); 
 		t_mitte = l_mitte / (0.000769231* winch->U); 
 		if (t_mitte < 0) t_anfahrt -= 100;
